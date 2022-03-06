@@ -3,6 +3,12 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 import pandas as pd
 import csv
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+import os
 
 youtube_trending_url = "https://www.youtube.com/feed/trending"
 
@@ -48,9 +54,70 @@ def parse_videos(video):
     'Upload_since' : upload_time,
     'Discription' : video_discription_text,
      }
+def send_email():
+  fromaddr = 'autosender4all@gmail.com'
+  toaddr = 'autosender4all@gmail.com'
+
+# instance of MIMEMultipart
+  msg = MIMEMultipart()
+
+# storing the senders email address
+  msg['From'] = fromaddr
+
+# storing the receivers email address
+  msg['To'] = toaddr
+
+# storing the subject
+  msg['Subject'] = "Youtube Top 10 Trending Videos data"
+
+# string to store the body of the mail
+  body = "Please Find the required data about youtube top 10 trending videos"
+
+# attach the body with the msg instance
+  msg.attach(MIMEText(body, 'plain'))
+
+# open the file to be sent
+  filename = "youtube_trending.csv"
+  attachment =   open('youtube_trending.csv', "rb")
+
+# instance of MIMEBase and named as p
+  p = MIMEBase('application', 'octet-stream')
+
+# To change the payload into encoded form
+  p.set_payload((attachment).read())
+
+# encode into base64
+  encoders.encode_base64(p)
+
+  p.add_header('Content-Disposition', "attachment; filename= %s" % filename)
+
+# attach the instance 'p' to instance 'msg'
+  msg.attach(p)
+
+# creates SMTP session
+  s = smtplib.SMTP('smtp.gmail.com', 587)
+
+# start TLS for security
+  s.starttls()
+
+# Authentication
+  my_secret = os.environ['Gmail_password']
+  s.login(fromaddr, my_secret)
+
+
+# Converts the Multipart msg into a string
+  text = msg.as_string()
+
+# sending the mail
+  s.sendmail(fromaddr, toaddr, text)
+
+# terminating the session
+  s.quit()
+
+  
   
 if __name__ == '__main__':
-    print("Geting Driver")
+    """print("Geting Driver")
     driver = create_driver()
     print("Geting videos")
     videos = get_videos(driver)
@@ -58,10 +125,15 @@ if __name__ == '__main__':
 
   # title, url, thumnail_url, channel, views, uploaded
     print("Parsing the top 10 videos")
+my_secret = os.environ['Gmail_password']
     videos_data = [parse_videos(video)for video in videos[:10]]
     print("Save Video Data to CSV")
     videos_df = pd.DataFrame(videos_data)
     print(videos_df)
     videos_df.to_csv('youtube_trending.csv', index= None)
-
     driver.quit()
+    """
+    print("Send email with results")
+    send_email()
+
+    
